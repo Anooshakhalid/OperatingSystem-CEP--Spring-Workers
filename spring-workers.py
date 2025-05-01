@@ -1,3 +1,24 @@
+import random
+from datetime import datetime
+
+
+
+# Logger
+def log(msg, section="", indent=0):
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    label = {
+        "picker": "\n*************   PICKER ACTIVITY   *************",
+        "loader": "\n*************   LOADER ACTIVITY   *************",
+        "tree": "\n*************   FRUIT TREE   *************",
+        "final": "\n*************   FINAL SUMMARY   *************"
+    }.get(section, "")
+    if label:
+        print(label)
+    print(f"{' ' * indent}[{timestamp}] {msg}")
+
+
+
+
 # Simple Semaphore
 class Semaphore:
     def __init__(self, value=0):
