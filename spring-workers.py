@@ -120,3 +120,39 @@ def picker(picker_id):
     done_flags[picker_id - 1] = True
     log(f"{picker_name} completed. Tree is bare.", indent=4)
     yield
+
+
+
+    # Loader process
+def loader():
+    crate_count = 0
+    while True:
+        if not crate_full.wait(current_thread): yield
+
+        if not crate_mutex.acquire(current_thread): yield
+        if len(crate) == CRATE_CAPACITY:
+            log("Loader triggered! Crate is full. Loading it to truck", section="loader", indent=2)
+            truck.append(list(crate))
+            crate_count += 1
+            crate.clear()
+            log(f"Loader placed crate in truck (Total crates: {crate_count})\n", indent=4)
+            crate_empty.signal()
+        crate_mutex.release()
+
+        if all(done_flags) and not tree:
+            break
+        yield
+
+    # Handle final partial crate
+    if crate:
+        if not crate_mutex.acquire(current_thread): yield
+        log("Loader detected partially filled crate after pickers finished.", section="loader", indent=2)
+        truck.append(list(crate))
+        crate_count += 1
+        crate.clear()
+        log(f"Final crate placed in truck (Total crates: {crate_count})", indent=4)
+        crate_mutex.release()
+
+    log("Loader completed all operations. Exiting.\n", section="loader", indent=2)
+    yield
+
