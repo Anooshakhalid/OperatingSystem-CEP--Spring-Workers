@@ -156,3 +156,48 @@ def loader():
     log("Loader completed all operations. Exiting.\n", section="loader", indent=2)
     yield
 
+
+
+    # Main function
+def main():
+    print("┌---------------------------------------------------------┐")
+    print("           🌸 SPRING WORKERS SIMULATION START 🌸          ")
+    print("└---------------------------------------------------------┘")
+
+    print("\nYay! Mango season has started, it's time to pluck the mangoes from the tree!")
+    print("Three pickers are:\nP1 - Anoosha\nP2 - Laiba\nP3 - Mahnoor\n")
+
+    global tree
+    tree = [i + 1 for i in range(TOTAL_FRUITS)]
+
+    log(f"Fruits on tree: {tree}\n", section="tree")
+
+    # Create processes
+    global scheduler
+    scheduler = [
+        picker(1),
+        picker(2),
+        picker(3),
+        loader()
+    ]
+
+    while scheduler:
+        current = scheduler.pop(0)
+        global current_thread
+        current_thread = current
+        try:
+            next(current)
+            scheduler.append(current)
+        except StopIteration:
+            pass
+
+    # Final Summary
+    log("", section="final")
+    for idx, c in enumerate(truck, 1):
+        print(f"Crate {idx}: {c} ({len(c)} fruits)")
+    print(f"\nTotal crates in truck: {len(truck)}")
+    print("All fruits picked and loaded successfully.\n")
+
+main()
+
+
