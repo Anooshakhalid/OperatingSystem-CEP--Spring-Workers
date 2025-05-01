@@ -2,6 +2,11 @@ import random
 from datetime import datetime
 
 
+# Global Configuration
+CRATE_CAPACITY = 12
+TOTAL_FRUITS = 50
+
+
 
 # Logger
 def log(msg, section="", indent=0):
@@ -63,6 +68,8 @@ class Mutex:
             scheduler.insert(0, next_thread)
         else:
             self.locked = False
+
+
 
 
 # Scheduler
