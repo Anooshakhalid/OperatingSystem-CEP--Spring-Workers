@@ -1,11 +1,18 @@
+#CLASSICAL SYNCHRONIZATION PROBLEM
+
 import random
 from datetime import datetime
 
-# Global Configuration
+
+
+# --------------- GLOBAL CONFIGURATION ---------------
+# Constants
 CRATE_CAPACITY = 12
 TOTAL_FRUITS = 50
 
-# Logger
+
+
+# --------------- LOGGER FUNCTION ---------------
 def log(msg, section="", indent=0):
     timestamp = datetime.now().strftime("%H:%M:%S")
     label = {
@@ -18,10 +25,14 @@ def log(msg, section="", indent=0):
         print(label)
     print(f"{' ' * indent}[{timestamp}] {msg}")
 
-# Name mapping
+
+
+# --------------- NAME MAPPING FOR PICKERS ---------------
 PICKER_NAMES = {1: "Anoosha", 2: "Laiba", 3: "Mahnoor"}
 
-# Simple Semaphore
+
+
+# --------------- SIMPLE SEMAPHORE CLASS ---------------
 class Semaphore:
     def __init__(self, value=0):
         self.value = value
@@ -42,7 +53,9 @@ class Semaphore:
         else:
             self.value += 1
 
-# Simple Mutex
+
+
+# --------------- SIMPLE MUTEX CLASS ---------------
 class Mutex:
     def __init__(self):
         self.locked = False
@@ -63,7 +76,9 @@ class Mutex:
         else:
             self.locked = False
 
-# Shared Resources
+
+
+# --------------- SHARED RESOURCES ---------------
 tree = []
 crate = []
 truck = []
@@ -72,33 +87,26 @@ crate_mutex = Mutex()
 crate_full = Semaphore(0)
 crate_empty = Semaphore(1)
 done_flags = [False, False, False]
-broadcast_done = False
 
 
 
-# Scheduler
+# --------------- SCHEDULER ---------------
+# It is an array(list) that manages pickers and loader one by one, giving each a turn until all are done
 scheduler = []
 
-# Picker process
+
+
+# --------------- PICKER PROCESS ---------------
 def picker(picker_id):
-    global broadcast_done
     picker_name = PICKER_NAMES[picker_id]
     while True:
-        if broadcast_done:
-            log(f"{picker_name} received broadcast. Stopping picker.", section="picker", indent=4)
-            break
-
         if not tree_mutex.acquire(current_thread): yield
         if tree:
             fruit = tree.pop(0)
             log(f"{picker_name} picked fruit {fruit}", section="picker", indent=4)
         else:
             tree_mutex.release()
-            if not broadcast_done:
-                broadcast_done = True
-                log(f"{picker_name} found tree empty. Broadcast: Tree is empty. Stopping all pickers.", section="picker", indent=4)
-            else:
-                log(f"{picker_name} received broadcast. Stopping fruit picking due to broadcast.", section="picker", indent=4)
+            log(f"{picker_name} found tree empty. Stopping fruit picking due to broadcast.", section="picker", indent=4)
             break
         tree_mutex.release()
 
@@ -123,7 +131,7 @@ def picker(picker_id):
 
 
 
-    # Loader process
+# --------------- LOADER PROCESS ---------------
 def loader():
     crate_count = 0
     while True:
@@ -158,46 +166,72 @@ def loader():
 
 
 
-    # Main function
+# --------------- MAIN FUNCTION ---------------
 def main():
+
+
+    # --------------- START SIMULATION ---------------
     print("┌---------------------------------------------------------┐")
     print("           🌸 SPRING WORKERS SIMULATION START 🌸          ")
     print("└---------------------------------------------------------┘")
 
+
+    # Announcing the mango season start and listing pickers
     print("\nYay! Mango season has started, it's time to pluck the mangoes from the tree!")
     print("Three pickers are:\nP1 - Anoosha\nP2 - Laiba\nP3 - Mahnoor\n")
 
+
+
+    # --------------- INITIALIZING FRUIT TREE ---------------
     global tree
+    # Populate the tree with fruits (numbers from 1 to TOTAL_FRUITS)
     tree = [i + 1 for i in range(TOTAL_FRUITS)]
 
+    # Log the initial fruit status on the tree
     log(f"Fruits on tree: {tree}\n", section="tree")
 
-    # Create processes
+
+
+    # --------------- CREATE AND SCHEDULE PROCESSES ---------------
     global scheduler
+    # Create and schedule the picker processes and loader process
     scheduler = [
-        picker(1),
-        picker(2),
-        picker(3),
-        loader()
+        picker(1),  # Picker 1 (Anoosha)
+        picker(2),  # Picker 2 (Laiba)
+        picker(3),  # Picker 3 (Mahnoor)
+        loader()    # Loader process
     ]
 
+
+
+    # --------------- SIMULATION LOOP ---------------
+    # Run the scheduled processes until all are completed
     while scheduler:
-        current = scheduler.pop(0)
+        current = scheduler.pop(0)  # Get the next process from the scheduler
         global current_thread
         current_thread = current
         try:
-            next(current)
-            scheduler.append(current)
+            next(current)  # Execute the next step of the process
+            scheduler.append(current)  # Re-add the process to scheduler if it's still active
         except StopIteration:
-            pass
+            pass  # Process has completed, do not re-add it
 
-    # Final Summary
+
+
+    # --------------- FINAL SUMMARY ---------------
     log("", section="final")
-    for idx, c in enumerate(truck, 1):
-        print(f"Crate {idx}: {c} ({len(c)} fruits)")
+    # Log the contents of each crate in the truck
+    for i, crate in enumerate(truck, 1):
+        print(f"Crate {i}: {crate} ({len(crate)} fruits)")
+
+
+    # Print total number of crates in the truck
     print(f"\nTotal crates in truck: {len(truck)}")
+
+
+    # Final message
     print("All fruits picked and loaded successfully.\n")
 
+
+# --------------- START THE SIMULATION ---------------
 main()
-
-
