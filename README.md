@@ -7,9 +7,9 @@ This Python script simulates a small team of workers (pickers and a loader) coll
 
 ##  Team Members
 
-- **Anoosha** - Picker 1  
-- **Laiba** - Picker 2  
-- **Mahnoor** - Picker 3  
+- **Anoosha Khalid** - Picker 1  
+- **Laiba Iqrar** - Picker 2  
+- **Mahnoor Zia** - Picker 3  
 - **Loader** - Loads full crates onto the truck  
 
 ---
@@ -41,10 +41,20 @@ This Python script simulates a small team of workers (pickers and a loader) coll
 1. Make sure you have **Python 3.12.2** installed.
 2. Save the code to a file (e.g., `spring_workers.py`).
 3. Open your terminal or command prompt.
-4. Run the script:
+4. Run the script: python spring_workers.py
 
-```bash
-python spring_workers.py
+---
+
+##  Contact
+
+For any questions, suggestions, or collaboration opportunities, feel free to reach out:
+- Email: anooshakhalid999@gmail.com
+
+
+
+
+
+
 
 
 
