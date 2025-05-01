@@ -23,6 +23,10 @@ def log(msg, section="", indent=0):
 
 
 
+# Name mapping
+PICKER_NAMES = {1: "Anoosha", 2: "Laiba", 3: "Mahnoor"}
+
+
 
 # Simple Semaphore
 class Semaphore:
@@ -74,6 +78,18 @@ class Mutex:
 
 # Scheduler
 scheduler = []
+
+
+# Shared Resources
+tree = []
+crate = []
+truck = []
+tree_mutex = Mutex()
+crate_mutex = Mutex()
+crate_full = Semaphore(0)
+crate_empty = Semaphore(1)
+done_flags = [False, False, False]
+broadcast_done = False
 
 
 
