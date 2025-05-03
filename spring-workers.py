@@ -1,237 +1,189 @@
-#CLASSICAL SYNCHRONIZATION PROBLEM
+# Group Members:
+# Mahnoor Zia (CS-22101)
+# Anoosha Khalid (CS-22104)
+# Laiba Iqrar (CS-22112)
 
+
+import threading
+import time
 import random
 from datetime import datetime
 
 
 
-# --------------- GLOBAL CONFIGURATION ---------------
-# Constants
+# ----------------------------- GLOBAL CONFIGURATION --------------------------
 CRATE_CAPACITY = 12
-TOTAL_FRUITS = 50
+TOTAL_FRUITS = 55
 
 
 
-# --------------- LOGGER FUNCTION ---------------
-def log(msg, section="", indent=0):
+# ----------------------------- COLORS FOR PRINTING ----------------------------------------
+COLOR_PINK = "\033[38;5;213m"
+COLOR_BRIGHT_WHITE = "\033[97m"
+COLOR_GREEN = "\033[92m"
+COLOR_BLUE = "\033[94m"
+COLOR_CYAN = "\033[96m"
+COLOR_YELLOW = "\033[93m"
+COLOR_RESET = "\033[0m"
+
+
+
+# ----------------------------- LOGGER FUNCTION FOR TRACKING--------------------------------
+def log(message, section="", indent=0):
     timestamp = datetime.now().strftime("%H:%M:%S")
-    label = {
-        "picker": "\n*************   PICKER ACTIVITY   *************",
-        "loader": "\n*************   LOADER ACTIVITY   *************",
-        "tree": "\n*************   FRUIT TREE   *************",
-        "final": "\n*************   FINAL SUMMARY   *************"
-    }.get(section, "")
+    section_labels = {
+        "picker": f"\n{COLOR_BLUE}[ PICKER ACTIVITY ]{COLOR_RESET}",
+        "loader": f"\n{COLOR_GREEN}[ LOADER ACTIVITY ]{COLOR_RESET}",
+        "tree": f"\n{COLOR_CYAN}[ FRUIT TREE ]{COLOR_RESET}",
+        "final": f"\n{COLOR_YELLOW}[ FINAL SUMMARY ]{COLOR_RESET}"
+    }
+    label = section_labels.get(section, "")
     if label:
         print(label)
-    print(f"{' ' * indent}[{timestamp}] {msg}")
+    print(f"{' ' * indent}{COLOR_YELLOW}[{timestamp}]{COLOR_RESET} {message}")
 
 
 
-# --------------- NAME MAPPING FOR PICKERS ---------------
-PICKER_NAMES = {1: "Anoosha", 2: "Laiba", 3: "Mahnoor"}
-
-
-
-# --------------- SIMPLE SEMAPHORE CLASS ---------------
-class Semaphore:
-    def __init__(self, value=0):
-        self.value = value
-        self.queue = []
-
-    def wait(self, current):
-        if self.value > 0:
-            self.value -= 1
-            return True
-        else:
-            self.queue.append(current)
-            return False
-
-    def signal(self):
-        if self.queue:
-            next_thread = self.queue.pop(0)
-            scheduler.insert(0, next_thread)
-        else:
-            self.value += 1
-
-
-
-# --------------- SIMPLE MUTEX CLASS ---------------
-class Mutex:
-    def __init__(self):
-        self.locked = False
-        self.queue = []
-
-    def acquire(self, current):
-        if not self.locked:
-            self.locked = True
-            return True
-        else:
-            self.queue.append(current)
-            return False
-
-    def release(self):
-        if self.queue:
-            next_thread = self.queue.pop(0)
-            scheduler.insert(0, next_thread)
-        else:
-            self.locked = False
-
-
-
-# --------------- SHARED RESOURCES ---------------
-tree = []
+# ---------------------------- SHARED RESOURCES ----------------------------------
+tree = list(range(1, TOTAL_FRUITS + 1))
 crate = []
 truck = []
-tree_mutex = Mutex()
-crate_mutex = Mutex()
-crate_full = Semaphore(0)
-crate_empty = Semaphore(1)
-done_flags = [False, False, False]
+
+mutex = threading.Lock()
+semaphore_full = threading.Semaphore(0)       # Loader waits on this when crate is full
+semaphore_space = threading.Semaphore(0)      # Pickers wait when crate is full
+
+pickers = 3
+pickers_in_critical_section = 0
 
 
 
-# --------------- SCHEDULER ---------------
-# It is an array(list) that manages pickers and loader one by one, giving each a turn until all are done
-scheduler = []
-
-
-
-# --------------- PICKER PROCESS ---------------
+# ---------------------------- PICKER THREAD --------------------------------------
 def picker(picker_id):
-    picker_name = PICKER_NAMES[picker_id]
+    global pickers, pickers_in_critical_section
+    picker_names = {1: "Anoosha", 2: "Laiba", 3: "Mahnoor"}
+    picker_name = picker_names[picker_id]
+
     while True:
-        if not tree_mutex.acquire(current_thread): yield
-        if tree:
-            fruit = tree.pop(0)
-            log(f"{picker_name} picked fruit {fruit}", section="picker", indent=4)
-        else:
-            tree_mutex.release()
-            log(f"{picker_name} found tree empty. Stopping fruit picking due to broadcast.", section="picker", indent=4)
-            break
-        tree_mutex.release()
+        mutex.acquire()
+        pickers_in_critical_section += 1
 
-        while crate_empty.value == 0:
-            yield
+        if not tree:
+            pickers_in_critical_section -= 1
+            pickers -= 1
+            log(f"{picker_name} has finished picking and is exiting.", section="picker", indent=4)
+            print(" " * 4 + "Tree is bare.")
 
-        if not crate_mutex.acquire(current_thread): yield
+            if len(crate) > 0:
+                semaphore_full.release()  # Notify loader in case it's the final crate
+            mutex.release()
+            return
+
+
+        if len(crate) == CRATE_CAPACITY:
+            pickers_in_critical_section -= 1
+            mutex.release()
+            semaphore_space.acquire()  # Wait for loader to clear crate
+            continue
+
+
+        fruit = tree.pop(0)
         crate.append(fruit)
-        log(f"{picker_name} placed fruit {fruit} in crate ({len(crate)}/{CRATE_CAPACITY})\n", indent=6)
+        log(f"{picker_name} picked fruit {fruit}.", section="picker", indent=4)
+        print(" " * 4 + f"Current crate size: {len(crate)}/{CRATE_CAPACITY}")
+
+
         if len(crate) == CRATE_CAPACITY:
-            log(f"{picker_name} found crate full. Notifying loader", indent=6)
-            crate_empty.value = 0
-            crate_full.signal()
-        crate_mutex.release()
+            log(f"{picker_name} has filled the crate with {CRATE_CAPACITY} fruits.", section="picker", indent=4)
+            print(" " * 4 + "Found crate full. Notifying loader.")
+            semaphore_full.release()
 
-        for _ in range(random.randint(1, 2)):
-            yield
-
-    done_flags[picker_id - 1] = True
-    log(f"{picker_name} completed. Tree is bare.", indent=4)
-    yield
+        pickers_in_critical_section -= 1
+        mutex.release()
+        time.sleep(random.uniform(0.05, 0.2))
 
 
 
-# --------------- LOADER PROCESS ---------------
+# ---------------------------- LOADER THREAD --------------------------------------
 def loader():
-    crate_count = 0
     while True:
-        if not crate_full.wait(current_thread): yield
+        semaphore_full.acquire()
+        mutex.acquire()
 
-        if not crate_mutex.acquire(current_thread): yield
         if len(crate) == CRATE_CAPACITY:
-            log("Loader triggered! Crate is full. Loading it to truck", section="loader", indent=2)
-            truck.append(list(crate))
-            crate_count += 1
+            log("Loader triggered! Crate is full.", section="loader", indent=2)
+            print(" " * 4 + "Loading it to truck...")
+            truck.append(crate[:])
             crate.clear()
-            log(f"Loader placed crate in truck (Total crates: {crate_count})\n", indent=4)
-            crate_empty.signal()
-        crate_mutex.release()
+            for _ in range(pickers):  # Wake up all pickers waiting
+                semaphore_space.release()
+            mutex.release()
+            time.sleep(0.2)
+            continue
 
-        if all(done_flags) and not tree:
-            break
-        yield
+        if pickers == 0 and pickers_in_critical_section == 0 and crate:
+            log("Loader detected partially filled crate after pickers finished.", section="loader", indent=2)
+            print(" " * 4 + "Loader is moving the final partial crate to the truck.")
+            truck.append(crate[:])
+            crate.clear()
+            log("Loader has completed all operations and is exiting.", section="loader", indent=2)
+            mutex.release()
+            return
 
-    # Handle final partial crate
-    if crate:
-        if not crate_mutex.acquire(current_thread): yield
-        log("Loader detected partially filled crate after pickers finished.", section="loader", indent=2)
-        truck.append(list(crate))
-        crate_count += 1
-        crate.clear()
-        log(f"Final crate placed in truck (Total crates: {crate_count})", indent=4)
-        crate_mutex.release()
+        if pickers == 0 and pickers_in_critical_section == 0 and not crate:
+            log("Loader has completed all operations and is exiting.", section="loader", indent=2)
+            mutex.release()
+            return
 
-    log("Loader completed all operations. Exiting.\n", section="loader", indent=2)
-    yield
+        mutex.release()
+        time.sleep(0.1)
 
 
 
-# --------------- MAIN FUNCTION ---------------
+# ---------------------------- MAIN --------------------------------------
 def main():
+    print("\n┌────────────────────────────────────────────────────────────┐")
+    print(f"          {COLOR_PINK} 🌸 SPRING WORKERS SIMULATION START 🌸 {COLOR_RESET}")
+    print("└────────────────────────────────────────────────────────────┘")
 
-
-    # --------------- START SIMULATION ---------------
-    print("┌---------------------------------------------------------┐")
-    print("           🌸 SPRING WORKERS SIMULATION START 🌸          ")
-    print("└---------------------------------------------------------┘")
-
-
-    # Announcing the mango season start and listing pickers
     print("\nYay! Mango season has started, it's time to pluck the mangoes from the tree!")
-    print("Three pickers are:\nP1 - Anoosha\nP2 - Laiba\nP3 - Mahnoor\n")
+    print("Pickers: 1 - Anoosha | 2 - Laiba | 3 - Mahnoor\n")
 
+    log(f"Fruits available on the tree: ", section="tree")
+    for i in range(0, len(tree), 10):
+        print(" " * 4 + ' '.join(map(str, tree[i:i + 10])))
 
+    picker_threads = [threading.Thread(target=picker, args=(i,)) for i in range(1, 4)]
+    loader_thread = threading.Thread(target=loader)
 
-    # --------------- INITIALIZING FRUIT TREE ---------------
-    global tree
-    # Populate the tree with fruits (numbers from 1 to TOTAL_FRUITS)
-    tree = [i + 1 for i in range(TOTAL_FRUITS)]
+    for t in picker_threads:
+        t.start()
+    loader_thread.start()
 
-    # Log the initial fruit status on the tree
-    log(f"Fruits on tree: {tree}\n", section="tree")
+    for t in picker_threads:
+        t.join()
+    loader_thread.join()
 
-
-
-    # --------------- CREATE AND SCHEDULE PROCESSES ---------------
-    global scheduler
-    # Create and schedule the picker processes and loader process
-    scheduler = [
-        picker(1),  # Picker 1 (Anoosha)
-        picker(2),  # Picker 2 (Laiba)
-        picker(3),  # Picker 3 (Mahnoor)
-        loader()    # Loader process
-    ]
-
-
-
-    # --------------- SIMULATION LOOP ---------------
-    # Run the scheduled processes until all are completed
-    while scheduler:
-        current = scheduler.pop(0)  # Get the next process from the scheduler
-        global current_thread
-        current_thread = current
-        try:
-            next(current)  # Execute the next step of the process
-            scheduler.append(current)  # Re-add the process to scheduler if it's still active
-        except StopIteration:
-            pass  # Process has completed, do not re-add it
-
-
-
-    # --------------- FINAL SUMMARY ---------------
     log("", section="final")
-    # Log the contents of each crate in the truck
-    for i, crate in enumerate(truck, 1):
-        print(f"Crate {i}: {crate} ({len(crate)} fruits)")
 
 
-    # Print total number of crates in the truck
-    print(f"\nTotal crates in truck: {len(truck)}")
+
+    # printing the summary
+    print("\nFruits in the Truck (Boxed in 12 per row):")
+    for idx, crate in enumerate(truck, 1):
+        print(f"\n[ Crate {idx} ]")
+        print(f"{COLOR_GREEN}┌────────────────────────────────────────────┐{COLOR_RESET}")
+        for i in range(0, len(crate), 12):
+            fruits_row = ' '.join(map(str, crate[i:i+12]))
+            print(f" {fruits_row:<40} ")
+        print(f"{COLOR_GREEN}└────────────────────────────────────────────┘{COLOR_RESET}")
+        print(f"({len(crate)} fruits)")
+
+    print(f"\nTotal crates loaded: {len(truck)}")
+    print(f"{COLOR_GREEN}Spring harvest has been successfully completed. Thank you, workers!{COLOR_RESET}\n")
 
 
-    # Final message
-    print("All fruits picked and loaded successfully.\n")
 
-
-# --------------- START THE SIMULATION ---------------
-main()
+# ---------------------------- START THE SIMULATION --------------------------------------
+if __name__ == '__main__':
+    main()
