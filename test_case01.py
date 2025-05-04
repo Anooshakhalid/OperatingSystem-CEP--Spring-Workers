@@ -4,6 +4,14 @@
 # Laiba Iqrar (CS-22112)
 
 
+#   TESTCASE:
+#	TOTAL_FRUITS = 8
+#	CRATE_CAPACITY = 12
+#	pickers = 3
+#   Expected output: Since there are fewer than 12 fruits, the crate will be partially filled with 8 fruits. After all pickers finish, the loader will move the partial crate to the truck, completing the task as expected.
+
+
+
 import threading
 import time
 import random
