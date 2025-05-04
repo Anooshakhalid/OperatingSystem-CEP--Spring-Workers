@@ -18,7 +18,7 @@ This Python script simulates a small team of workers (pickers and a loader) coll
 
 - The **tree** starts with a number of mangoes.
 - **Pickers**:
-  - Pick one fruit at a time from the tree.
+  - Only one picker picks one fruit at a time from the tree.
   - Place it into a **crate**.
   - If the crate gets full, they notify the **loader**.
 - **Loader**:
@@ -30,11 +30,17 @@ This Python script simulates a small team of workers (pickers and a loader) coll
 
 ##  How It’s Built
 
-- Uses **generators** to simulate concurrency (step-by-step turns).
-- A simple **scheduler** (list) manages turn-taking between pickers and the loader.
-- **Mutexes and Semaphores** are used to safely manage shared resources like the tree and crate.
+- Built using **Python's `threading` module** to simulate concurrency.
+- **Threads**:
+  - 3 picker threads
+  - 1 loader thread
+- **Thread synchronization** is handled by:
+  - `threading.Lock` for mutual exclusion on shared resources (`tree`, `crate`, `truck`)
+  - `threading.Semaphore` for coordination between pickers and the loader
+- Color-coded logging and time-stamped output make the simulation easy to follow.
 
 ---
+
 
 ##  How To Run
 
