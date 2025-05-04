@@ -13,7 +13,7 @@ from datetime import datetime
 
 # ----------------------------- GLOBAL VARIABLES --------------------------
 CRATE_CAPACITY = 12
-TOTAL_FRUITS = 12
+TOTAL_FRUITS = 0
 
 
 
@@ -76,8 +76,12 @@ def picker(picker_id):
             pickers_in_critical_section -= 1
 
             pickers -= 1
-            log(f"{picker_name} has finished picking and is waiting for loader to finish.", section="picker", indent=4)
-            print(" " * 4 + "Tree is bare.")
+            if TOTAL_FRUITS == 0:
+                log("OOPS! No fruits available on the tree :( No need to call the loader.", section="tree")
+                print(" " * 4 + f"{picker_name} is upset and exiting.")
+            else:
+                log(f"{picker_name} has finished picking and is waiting for loader to finish.", section="picker", indent=4)
+                print(" " * 4 + "Tree is bare.")
 
             semaphore_loader.release()       # semSignal(L)
             mutex.release()             # semSignal(mutex)
@@ -136,13 +140,19 @@ def loader():
             print(" " * 4 + "Loader is moving the final partial crate to the truck.")
             truck.append(crate[:])
             crate.clear()
-            log("Loader has completed all operations and is exiting.", section="loader", indent=2)
+            if TOTAL_FRUITS == 0:
+                return
+            else:
+                log("Loader has completed all operations and is exiting.", section="loader", indent=2)
             mutex.release()                       # semSignal(mutex)
             return  # End the loader thread since it's done
 
         # If no pickers left and no crate, finish
         if pickers == 0 and pickers_in_critical_section == 0 and not crate:
-            log("Loader has completed all operations and is exiting.", section="loader", indent=2)
+            if TOTAL_FRUITS == 0:
+                return
+            else:
+                log("Loader has completed all operations and is exiting.", section="loader", indent=2)
             mutex.release()                       # semSignal(mutex)
             return  # End the loader thread since it's done
 
@@ -162,7 +172,7 @@ def main():
     print("\nYay! Mango season has started, it's time to pluck the mangoes from the tree!")
     print("Pickers: 1 - Anoosha | 2 - Laiba | 3 - Mahnoor\n")
 
-    log(f"Fruits available on the tree: ", section="tree")
+
     for i in range(0, len(tree), 10):
         print(" " * 4 + ' '.join(map(str, tree[i:i + 10])))
 
@@ -186,7 +196,8 @@ def main():
 
 
     # printing the summary
-    print("\nCrates in the Truck:")
+    if TOTAL_FRUITS > 0:
+        print("\nCrates in the Truck:")
     for index, crate in enumerate(truck, 1):
         print(f"\n[ Crate {index} ]")
 
