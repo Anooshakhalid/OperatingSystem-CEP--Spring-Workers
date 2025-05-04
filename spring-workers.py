@@ -94,11 +94,13 @@ def picker(picker_id):
             semaphore_picker.acquire()  # semWait(P)
             continue
 
+
         # Pick a fruit
         fruit = tree.pop(0)
         crate.append(fruit)
         log(f"{picker_name} picked fruit {fruit}.", section="picker", indent=4)
         print(" " * 4 + f"Current crate size: {len(crate)}/{CRATE_CAPACITY}")
+
 
         if len(crate) == CRATE_CAPACITY:        # Notify loader once crate is full
             log(f"{picker_name} has filled the crate with {CRATE_CAPACITY} fruits.", section="picker", indent=4)
@@ -108,8 +110,6 @@ def picker(picker_id):
         pickers_in_critical_section -= 1
         mutex.release()                        # semSignal(mutex)
         time.sleep(random.uniform(0.05, 0.2))  # to alternation of pickers
-
-
 
 
 
@@ -134,6 +134,7 @@ def loader():
             time.sleep(0.2)  # Optional, you can adjust/remove this
             continue
 
+
         # If all pickers are done and there's a partial crate
         if pickers == 0 and pickers_in_critical_section == 0 and crate:
             log("Loader detected partially filled crate after pickers finished.", section="loader", indent=2)
@@ -147,6 +148,7 @@ def loader():
             mutex.release()                       # semSignal(mutex)
             return  # End the loader thread since it's done
 
+
         # If no pickers left and no crate, finish
         if pickers == 0 and pickers_in_critical_section == 0 and not crate:
             if TOTAL_FRUITS == 0:
@@ -158,8 +160,6 @@ def loader():
 
         mutex.release()                           # semSignal(mutex)
         time.sleep(0.1)  # Optional, you can adjust/remove this
-
-
 
 
 
@@ -177,10 +177,11 @@ def main():
     print("\nYay! Mango season has started, it's time to pluck the mangoes from the tree!")
     print("Pickers: 1 - Anoosha | 2 - Laiba | 3 - Mahnoor\n")
 
-
-    for i in range(0, len(tree), 10):
+    for i in range(0, len(tree), 10):       # for printing the tree
         print(" " * 4 + ' '.join(map(str, tree[i:i + 10])))
 
+
+    #creating threads
     picker_threads = [threading.Thread(target=picker, args=(i,)) for i in range(1, 4)]
     loader_thread = threading.Thread(target=loader)
 
@@ -197,7 +198,6 @@ def main():
     loader_thread.join()
 
     log("", section="final")
-
 
 
     # printing the summary
