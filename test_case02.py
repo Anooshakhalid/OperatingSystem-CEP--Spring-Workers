@@ -4,6 +4,15 @@
 # Laiba Iqrar (CS-22112)
 
 
+#   TESTCASE:
+#	TOTAL_FRUITS = 12
+#	CRATE_CAPACITY = 12
+#	pickers = 3
+#   Expected output: Pickers (3) fill crates in parallel, and each crate is moved to the truck once it reaches 12 fruits. No partial crate will be detected.
+
+
+
+
 import threading
 import time
 import random
