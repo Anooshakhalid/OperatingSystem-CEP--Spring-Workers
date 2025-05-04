@@ -11,13 +11,13 @@ from datetime import datetime
 
 
 
-# ----------------------------- GLOBAL VARIABLES --------------------------
+# GLOBAL VARIABLES
 CRATE_CAPACITY = 12
 TOTAL_FRUITS = 60
 
 
 
-# ----------------------------- COLORS FOR PRINTING -----------------------
+# COLORS FOR PRINTING READABILITY
 COLOR_PINK = "\033[38;5;213m"
 COLOR_BRIGHT_WHITE = "\033[97m"
 COLOR_GREEN = "\033[92m"
@@ -28,7 +28,7 @@ COLOR_RESET = "\033[0m"
 
 
 
-# ------------------------- LOGGER FUNCTION FOR TRACKING ---------------------
+# LOGGER FUNCTION FOR TRACKING 
 def log(message, section="", indent=0):
     timestamp = datetime.now().strftime("%H:%M:%S")
     section_labels = {
@@ -45,14 +45,14 @@ def log(message, section="", indent=0):
 
 
 
-# ---------------------------- SEMAPHORES AND MUTEXES ----------------------------
+#SEMAPHORES AND MUTEXES
 mutex = threading.Lock()                       # for mutual exclusion
 semaphore_loader = threading.Semaphore(0)      # Loader waits on this until crate is full
 semaphore_picker = threading.Semaphore(0)      # Pickers wait for a new crate after the loader takes the full one.
 
 
 
-# ---------------------------- SHARED RESOURCES ----------------------------------
+# SHARED RESOURCES 
 tree = list(range(1, TOTAL_FRUITS + 1))      #array
 crate = []
 truck = []
@@ -61,7 +61,7 @@ pickers_in_critical_section = 0
 
 
 
-# ---------------------------- PICKER THREAD --------------------------------------
+#PICKER THREAD 
 def picker(picker_id):
     global pickers, pickers_in_critical_section
     picker_names = {1: "Anoosha", 2: "Laiba", 3: "Mahnoor"}
@@ -113,7 +113,7 @@ def picker(picker_id):
 
 
 
-# ---------------------------- LOADER THREAD --------------------------------------
+# LOADER THREAD
 def loader():
     while True:
         semaphore_loader.acquire()      # semWait(L)
@@ -163,10 +163,10 @@ def loader():
 
 
 
-# ---------------------------- MAIN --------------------------------------
+#MAIN
 def main():
     print("\n┌────────────────────────────────────────────────────────────┐")
-    print(f"          {COLOR_PINK} 🌸 SPRING WORKERS SIMULATION START 🌸 {COLOR_RESET}")
+    print(f"          {COLOR_PINK}  SPRING WORKERS SIMULATION START  {COLOR_RESET}")
     print("└────────────────────────────────────────────────────────────┘")
 
     if TOTAL_FRUITS < 0:    # if enter the neg no for fruits
@@ -220,5 +220,4 @@ def main():
 
 
 
-# ---------------------------- START THE SIMULATION ------------------------------
 main()
