@@ -14,6 +14,18 @@ This Python script simulates a small team of workers (pickers and a loader) coll
 
 ---
 
+##  Simulation
+
+![Alt text](readme-images/img1.png)
+![Alt text](readme-images/img2.png)
+![Alt text](readme-images/img3.png)
+![Alt text](readme-images/img4.png)
+![Alt text](readme-images/img5.png)
+![Alt text](readme-images/graph.png)
+
+
+---
+
 ##  How It Works
 
 - The **tree** starts with a number of mangoes.
