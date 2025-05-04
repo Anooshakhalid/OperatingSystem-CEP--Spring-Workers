@@ -11,13 +11,13 @@ from datetime import datetime
 
 
 
-# ----------------------------- GLOBAL CONFIGURATION --------------------------
+# ----------------------------- GLOBAL VARIABLES --------------------------
 CRATE_CAPACITY = 12
 TOTAL_FRUITS = 55
 
 
 
-# ----------------------------- COLORS FOR PRINTING ----------------------------------------
+# ----------------------------- COLORS FOR PRINTING -----------------------
 COLOR_PINK = "\033[38;5;213m"
 COLOR_BRIGHT_WHITE = "\033[97m"
 COLOR_GREEN = "\033[92m"
@@ -28,7 +28,7 @@ COLOR_RESET = "\033[0m"
 
 
 
-# ----------------------------- LOGGER FUNCTION FOR TRACKING--------------------------------
+# ------------------------- LOGGER FUNCTION FOR TRACKING ---------------------
 def log(message, section="", indent=0):
     timestamp = datetime.now().strftime("%H:%M:%S")
     section_labels = {
@@ -38,21 +38,24 @@ def log(message, section="", indent=0):
         "final": f"\n{COLOR_YELLOW}[ FINAL SUMMARY ]{COLOR_RESET}"
     }
     label = section_labels.get(section, "")
+
     if label:
         print(label)
     print(f"{' ' * indent}{COLOR_YELLOW}[{timestamp}]{COLOR_RESET} {message}")
 
 
 
+# ---------------------------- SEMAPHORES AND MUTEXES ----------------------------
+mutex = threading.Lock()                       # for mutual exclusion
+semaphore_loader = threading.Semaphore(0)      # Loader waits on this until crate is full
+semaphore_picker = threading.Semaphore(0)      # Pickers wait for a new crate after the loader takes the full one.
+
+
+
 # ---------------------------- SHARED RESOURCES ----------------------------------
-tree = list(range(1, TOTAL_FRUITS + 1))
+tree = list(range(1, TOTAL_FRUITS + 1))      #array
 crate = []
 truck = []
-
-mutex = threading.Lock()
-semaphore_full = threading.Semaphore(0)       # Loader waits on this when crate is full
-semaphore_space = threading.Semaphore(0)      # Pickers wait when crate is full
-
 pickers = 3
 pickers_in_critical_section = 0
 
@@ -65,7 +68,7 @@ def picker(picker_id):
     picker_name = picker_names[picker_id]
 
     while True:
-        mutex.acquire()
+        mutex.acquire()                     # semWait(mutex)
         pickers_in_critical_section += 1
 
         if not tree:
@@ -75,19 +78,19 @@ def picker(picker_id):
             print(" " * 4 + "Tree is bare.")
 
             if len(crate) > 0:
-                semaphore_full.release()  # Notify loader in case it's the final crate
-            mutex.release()
+                semaphore_loader.release()  # Notify loader in case it's the final crate
+            mutex.release()                 # semSignal(mutex)
             return
 
 
         if len(crate) == CRATE_CAPACITY:
             pickers_in_critical_section -= 1
-            mutex.release()
-            semaphore_space.acquire()  # Wait for loader to clear crate
+            mutex.release()                 # semSignal(mutex)
+            semaphore_picker.acquire()      # semWait(P)
             continue
 
 
-        fruit = tree.pop(0)
+        fruit = tree.pop(0)                 # pick one fruit at a time
         crate.append(fruit)
         log(f"{picker_name} picked fruit {fruit}.", section="picker", indent=4)
         print(" " * 4 + f"Current crate size: {len(crate)}/{CRATE_CAPACITY}")
@@ -96,30 +99,32 @@ def picker(picker_id):
         if len(crate) == CRATE_CAPACITY:
             log(f"{picker_name} has filled the crate with {CRATE_CAPACITY} fruits.", section="picker", indent=4)
             print(" " * 4 + "Found crate full. Notifying loader.")
-            semaphore_full.release()
+            semaphore_loader.release()       #semSignal(L)
 
         pickers_in_critical_section -= 1
-        mutex.release()
-        time.sleep(random.uniform(0.05, 0.2))
+        mutex.release()                      # semSignal(mutex)
+        time.sleep(random.uniform(0.05, 0.2))             # allow threads to alternate
 
 
 
 # ---------------------------- LOADER THREAD --------------------------------------
 def loader():
     while True:
-        semaphore_full.acquire()
-        mutex.acquire()
+        semaphore_loader.acquire()      # semWait(L)
+        mutex.acquire()                 # semWait(mutex)
+
 
         if len(crate) == CRATE_CAPACITY:
             log("Loader triggered! Crate is full.", section="loader", indent=2)
             print(" " * 4 + "Loading it to truck...")
             truck.append(crate[:])
             crate.clear()
-            for _ in range(pickers):  # Wake up all pickers waiting
-                semaphore_space.release()
-            mutex.release()
+            for _ in range(pickers):
+                semaphore_picker.release()        # semSignal(P)
+            mutex.release()                       # semSignal(mutex)
             time.sleep(0.2)
             continue
+
 
         if pickers == 0 and pickers_in_critical_section == 0 and crate:
             log("Loader detected partially filled crate after pickers finished.", section="loader", indent=2)
@@ -127,15 +132,15 @@ def loader():
             truck.append(crate[:])
             crate.clear()
             log("Loader has completed all operations and is exiting.", section="loader", indent=2)
-            mutex.release()
+            mutex.release()                       # semSignal(mutex)
             return
 
         if pickers == 0 and pickers_in_critical_section == 0 and not crate:
             log("Loader has completed all operations and is exiting.", section="loader", indent=2)
-            mutex.release()
+            mutex.release()                       # semSignal(mutex)
             return
 
-        mutex.release()
+        mutex.release()                           # semSignal(mutex)
         time.sleep(0.1)
 
 
@@ -156,10 +161,14 @@ def main():
     picker_threads = [threading.Thread(target=picker, args=(i,)) for i in range(1, 4)]
     loader_thread = threading.Thread(target=loader)
 
+
+    # start the both picker and loader to finish their work
     for t in picker_threads:
         t.start()
     loader_thread.start()
 
+
+    # wait for both picker and loader to finish their work
     for t in picker_threads:
         t.join()
     loader_thread.join()
@@ -169,9 +178,11 @@ def main():
 
 
     # printing the summary
-    print("\nFruits in the Truck (Boxed in 12 per row):")
-    for idx, crate in enumerate(truck, 1):
-        print(f"\n[ Crate {idx} ]")
+    print("\nCrates in the Truck:")
+    for index, crate in enumerate(truck, 1):
+        print(f"\n[ Crate {index} ]")
+
+
         print(f"{COLOR_GREEN}┌────────────────────────────────────────────┐{COLOR_RESET}")
         for i in range(0, len(crate), 12):
             fruits_row = ' '.join(map(str, crate[i:i+12]))
@@ -179,11 +190,11 @@ def main():
         print(f"{COLOR_GREEN}└────────────────────────────────────────────┘{COLOR_RESET}")
         print(f"({len(crate)} fruits)")
 
+
     print(f"\nTotal crates loaded: {len(truck)}")
     print(f"{COLOR_GREEN}Spring harvest has been successfully completed. Thank you, workers!{COLOR_RESET}\n")
 
 
 
-# ---------------------------- START THE SIMULATION --------------------------------------
-if __name__ == '__main__':
-    main()
+# ---------------------------- START THE SIMULATION ------------------------------
+main()
