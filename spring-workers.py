@@ -13,7 +13,7 @@ from datetime import datetime
 
 # ----------------------------- GLOBAL VARIABLES --------------------------
 CRATE_CAPACITY = 12
-TOTAL_FRUITS = 55
+TOTAL_FRUITS = 12
 
 
 
@@ -68,42 +68,44 @@ def picker(picker_id):
     picker_name = picker_names[picker_id]
 
     while True:
-        mutex.acquire()                     # semWait(mutex)
+        mutex.acquire()  # semWait(mutex)
+
         pickers_in_critical_section += 1
 
-        if not tree:
+        if not tree:  # No more fruits left
             pickers_in_critical_section -= 1
+
             pickers -= 1
-            log(f"{picker_name} has finished picking and is exiting.", section="picker", indent=4)
+            log(f"{picker_name} has finished picking and is waiting for loader to finish.", section="picker", indent=4)
             print(" " * 4 + "Tree is bare.")
 
-            if len(crate) > 0:
-                semaphore_loader.release()  # Notify loader in case it's the final crate
-            mutex.release()                 # semSignal(mutex)
+            semaphore_loader.release()       # semSignal(L)
+            mutex.release()             # semSignal(mutex)
             return
 
 
         if len(crate) == CRATE_CAPACITY:
             pickers_in_critical_section -= 1
-            mutex.release()                 # semSignal(mutex)
-            semaphore_picker.acquire()      # semWait(P)
+            mutex.release()             # semSignal(mutex)
+            semaphore_picker.acquire()  # semWait(P)
             continue
 
-
-        fruit = tree.pop(0)                 # pick one fruit at a time
+        # Pick a fruit
+        fruit = tree.pop(0)
         crate.append(fruit)
         log(f"{picker_name} picked fruit {fruit}.", section="picker", indent=4)
         print(" " * 4 + f"Current crate size: {len(crate)}/{CRATE_CAPACITY}")
 
-
-        if len(crate) == CRATE_CAPACITY:
+        if len(crate) == CRATE_CAPACITY:        # Notify loader once crate is full
             log(f"{picker_name} has filled the crate with {CRATE_CAPACITY} fruits.", section="picker", indent=4)
             print(" " * 4 + "Found crate full. Notifying loader.")
-            semaphore_loader.release()       #semSignal(L)
+            semaphore_loader.release()         # semSignal(L)
 
         pickers_in_critical_section -= 1
-        mutex.release()                      # semSignal(mutex)
-        time.sleep(random.uniform(0.05, 0.2))             # allow threads to alternate
+        mutex.release()                        # semSignal(mutex)
+        time.sleep(random.uniform(0.05, 0.2))  # to alternation of pickers
+
+
 
 
 
@@ -113,19 +115,22 @@ def loader():
         semaphore_loader.acquire()      # semWait(L)
         mutex.acquire()                 # semWait(mutex)
 
-
+        # Check if the crate is full
         if len(crate) == CRATE_CAPACITY:
             log("Loader triggered! Crate is full.", section="loader", indent=2)
             print(" " * 4 + "Loading it to truck...")
             truck.append(crate[:])
             crate.clear()
+
+            # Notify pickers that they can start working on a new crate
             for _ in range(pickers):
                 semaphore_picker.release()        # semSignal(P)
+
             mutex.release()                       # semSignal(mutex)
-            time.sleep(0.2)
+            time.sleep(0.2)  # Optional, you can adjust/remove this
             continue
 
-
+        # If all pickers are done and there's a partial crate
         if pickers == 0 and pickers_in_critical_section == 0 and crate:
             log("Loader detected partially filled crate after pickers finished.", section="loader", indent=2)
             print(" " * 4 + "Loader is moving the final partial crate to the truck.")
@@ -133,15 +138,18 @@ def loader():
             crate.clear()
             log("Loader has completed all operations and is exiting.", section="loader", indent=2)
             mutex.release()                       # semSignal(mutex)
-            return
+            return  # End the loader thread since it's done
 
+        # If no pickers left and no crate, finish
         if pickers == 0 and pickers_in_critical_section == 0 and not crate:
             log("Loader has completed all operations and is exiting.", section="loader", indent=2)
             mutex.release()                       # semSignal(mutex)
-            return
+            return  # End the loader thread since it's done
 
         mutex.release()                           # semSignal(mutex)
-        time.sleep(0.1)
+        time.sleep(0.1)  # Optional, you can adjust/remove this
+
+
 
 
 
