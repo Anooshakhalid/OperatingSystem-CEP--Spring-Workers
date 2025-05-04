@@ -13,7 +13,7 @@ from datetime import datetime
 
 # ----------------------------- GLOBAL VARIABLES --------------------------
 CRATE_CAPACITY = 12
-TOTAL_FRUITS = 0
+TOTAL_FRUITS = 60
 
 
 
@@ -168,6 +168,11 @@ def main():
     print("\n┌────────────────────────────────────────────────────────────┐")
     print(f"          {COLOR_PINK} 🌸 SPRING WORKERS SIMULATION START 🌸 {COLOR_RESET}")
     print("└────────────────────────────────────────────────────────────┘")
+
+    if TOTAL_FRUITS < 0:    # if enter the neg no for fruits
+        print("\nOOPS! Fruits can't be negative.\nENTER THE ACCURATE DETAILS PLS.")
+        print("Exiting the simulation...")
+        return
 
     print("\nYay! Mango season has started, it's time to pluck the mangoes from the tree!")
     print("Pickers: 1 - Anoosha | 2 - Laiba | 3 - Mahnoor\n")
