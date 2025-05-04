@@ -11,13 +11,13 @@ from datetime import datetime
 
 
 
-# GLOBAL VARIABLES
+# ----------------------------- GLOBAL VARIABLES -----------------------------
 CRATE_CAPACITY = 12
 TOTAL_FRUITS = 60
 
 
 
-# COLORS FOR PRINTING READABILITY
+# ----------------------------- COLORS FOR PRINTING READABILITY -----------------------------
 COLOR_PINK = "\033[38;5;213m"
 COLOR_BRIGHT_WHITE = "\033[97m"
 COLOR_GREEN = "\033[92m"
@@ -28,7 +28,7 @@ COLOR_RESET = "\033[0m"
 
 
 
-# LOGGER FUNCTION FOR TRACKING 
+# ----------------------------- LOGGER FUNCTION FOR TRACKING -----------------------------
 def log(message, section="", indent=0):
     timestamp = datetime.now().strftime("%H:%M:%S")
     section_labels = {
@@ -45,14 +45,14 @@ def log(message, section="", indent=0):
 
 
 
-#SEMAPHORES AND MUTEXES
+#---------------------- SEMAPHORES AND MUTEXES -----------------------------
 mutex = threading.Lock()                       # for mutual exclusion
 semaphore_loader = threading.Semaphore(0)      # Loader waits on this until crate is full
 semaphore_picker = threading.Semaphore(0)      # Pickers wait for a new crate after the loader takes the full one.
 
 
 
-# SHARED RESOURCES 
+# ----------------------------- SHARED RESOURCES -----------------------------
 tree = list(range(1, TOTAL_FRUITS + 1))      #array
 crate = []
 truck = []
@@ -61,7 +61,7 @@ pickers_in_critical_section = 0
 
 
 
-#PICKER THREAD 
+# ----------------------------- PICKER THREAD -----------------------------
 def picker(picker_id):
     global pickers, pickers_in_critical_section
     picker_names = {1: "Anoosha", 2: "Laiba", 3: "Mahnoor"}
@@ -113,7 +113,7 @@ def picker(picker_id):
 
 
 
-# LOADER THREAD
+# ----------------------------- LOADER THREAD -----------------------------
 def loader():
     while True:
         semaphore_loader.acquire()      # semWait(L)
@@ -126,12 +126,11 @@ def loader():
             truck.append(crate[:])
             crate.clear()
 
-            # Notify pickers that they can start working on a new crate
+            # It will notify pickers that they can start working on a new crate
             for _ in range(pickers):
                 semaphore_picker.release()        # semSignal(P)
 
             mutex.release()                       # semSignal(mutex)
-            time.sleep(0.2)  # Optional, you can adjust/remove this
             continue
 
 
@@ -146,7 +145,7 @@ def loader():
             else:
                 log("Loader has completed all operations and is exiting.", section="loader", indent=2)
             mutex.release()                       # semSignal(mutex)
-            return  # End the loader thread since it's done
+            return
 
 
         # If no pickers left and no crate, finish
@@ -156,14 +155,13 @@ def loader():
             else:
                 log("Loader has completed all operations and is exiting.", section="loader", indent=2)
             mutex.release()                       # semSignal(mutex)
-            return  # End the loader thread since it's done
+            return
 
         mutex.release()                           # semSignal(mutex)
-        time.sleep(0.1)  # Optional, you can adjust/remove this
 
 
 
-#MAIN
+# ----------------------------- MAIN -----------------------------
 def main():
     print("\n┌────────────────────────────────────────────────────────────┐")
     print(f"          {COLOR_PINK}  SPRING WORKERS SIMULATION START  {COLOR_RESET}")
@@ -219,5 +217,5 @@ def main():
     print(f"{COLOR_GREEN}Spring harvest has been successfully completed. Thank you, workers!{COLOR_RESET}\n")
 
 
-
+# ----------------------------- RUN -----------------------------
 main()
