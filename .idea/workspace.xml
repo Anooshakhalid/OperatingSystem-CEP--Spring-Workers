@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="91bbd160-aaa2-4a1f-9a96-9cb11a82b87d" name="Changes" comment="added and tested the graph logics">
-      <change afterPath="$PROJECT_DIR$/code/analysis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spring-workers.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/spring-workers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
